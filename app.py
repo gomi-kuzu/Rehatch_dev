@@ -96,10 +96,7 @@ def hello():
 @app.route('/api/command/reference_talk', methods=['GET'])
 def recieve_get():
   query = request.args.get('content')
-  send_user = request.args.get('user')
-  print('user_name: {}'.format(send_user))
-  #print('query: {}'.format(query))
-
+  
   url = make_url(query)
   reps,link_url = make_response(url,query)
   # for r in reps:
@@ -115,7 +112,9 @@ def recieve_get():
 @app.route('/api/command/reference_talk/from_slack', methods=['POST'])
 def recieve_post_slack():
   query = request.form['text']
+  send_user = request.args.get('user_name')
 
+  print('user_name: {}'.format(send_user))
   print('query: {}'.format(query))
 
   url = make_url(query)

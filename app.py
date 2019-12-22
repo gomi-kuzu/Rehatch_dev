@@ -114,19 +114,21 @@ def recieve_post_slack():
   query = request.form['text']
   send_user = request.form['user_name']
 
-  print(request.form)
-  print('query: {}'.format(query))
+  # print(request.form)
+  # print('query: {}'.format(query))
 
   url = make_url(query)
   reps,link_url = make_response(url,query)
   for r in reps:
     print('> {}'.format(r))
   
-  send_to_slack(''.join(reps))
   
   if link_url:
+    send_to_slack('{}さんは'.format(send_user) + ''.join(reps))
     send_to_slack(link_url)
-
+  else:
+    send_to_slack(''.join(reps))
+    
   return ''
 
 if __name__ == '__main__':

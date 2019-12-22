@@ -114,7 +114,7 @@ def recieve_post_slack():
   query = request.form['text']
   send_user = request.form['user_name']
 
-  print('user_name: {}'.format(send_user))
+  print(request.form)
   print('query: {}'.format(query))
 
   url = make_url(query)

@@ -97,7 +97,7 @@ def hello():
 def recieve_get():
   query = request.args.get('content')
   send_user = request.args.get('user_name')
-  print('user_name: {}'.format(user_name))
+  print('user_name: {}'.format(send_user))
   print('query: {}'.format(query))
 
   url = make_url(query)

@@ -2,10 +2,6 @@ from flask import Flask, render_template, request
 import os
 import slack
 from urllib import request as req
-#from bs4 import BeautifulSoup as bs
-#from datetime import datetime, date, timedelta
-#import argparse
-#import openpyxl
 import random
 import xmltodict
 import urllib.parse
@@ -77,7 +73,7 @@ def make_response(url,name):
         link = dict['reference']['url']
 
         reps += ['{} のあたりにいるんだね！'.format(name)]
-        reps += ['ここついては、「{}」という質問を図書館に投げかけた人がいるみたいだよ。'.format(question)]
+        reps += ['そこについては、「{}」という質問を図書館に投げかけた人がいるみたいだよ。'.format(question)]
         reps += ['もっと詳しく知りたいならリンク先をみてみてね！']
 
     else:
@@ -86,8 +82,8 @@ def make_response(url,name):
 
     return reps,link
 
-def send_to_slack(send_text,channel_name= "れはっちリファレンス開発室"):
-  response = client.chat_postMessage(channel='#{}'.format(channel_name), text=send_text)
+def send_to_slack(send_text,channel_name= "#botデバッグ用"):
+  response = client.chat_postMessage(channel=channel_name, text=send_text,icon_emoji = ":rehatch_1:",username="れはっち" )
 
 
 @app.route('/')
@@ -100,17 +96,20 @@ def hello():
 @app.route('/api/command/reference_talk', methods=['GET'])
 def recieve_get():
   query = request.args.get('content')
-  
+  #send_user = request.args.get('user_name')
+  #print('user_name: {}'.format(user_name))
   print('query: {}'.format(query))
 
   url = make_url(query)
   reps,link_url = make_response(url,query)
-  for r in reps:
-    print('> {}'.format(r))
+  # for r in reps:
+  #   print('> {}'.format(r))
   if link_url:
     send_to_slack(link_url)
+    reps += ['スラックに送ったよ！']
+    
 
-  return ''.join(reps) + "スラックに送ったよ！"
+  return ''.join(reps)
 
 #for Slack
 @app.route('/api/command/reference_talk/from_slack', methods=['POST'])

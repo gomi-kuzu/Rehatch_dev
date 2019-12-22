@@ -112,7 +112,7 @@ def recieve_get():
 @app.route('/api/command/reference_talk/from_slack', methods=['POST'])
 def recieve_post_slack():
   query = request.form['text']
-  send_user = request.args.get('user_name')
+  send_user = request.form['user_name']
 
   print('user_name: {}'.format(send_user))
   print('query: {}'.format(query))

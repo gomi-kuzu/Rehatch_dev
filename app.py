@@ -8,6 +8,8 @@ import urllib.parse
 import requests
 import json
 import urllib.request
+import util_refa
+
 
 app = Flask(__name__)
 
@@ -73,39 +75,41 @@ parser = WebhookParser(line_channel_secret)
 
 
 
-def make_url(key_word,serch_type = "question"):
-    s = ""
-    for i,w in enumerate(key_word.split(" and ")):
-        if i !=0:
-            s += " and " 
-        s += "{} any {}".format(serch_type,w)
-    s_quote = urllib.parse.quote(s)
-    url = "{}?type=reference&query={}".format(root_url,s_quote)
-    return url
+# def make_url(key_word,serch_type = "question"):
+#     s = ""
+#     for i,w in enumerate(key_word.split(" and ")):
+#         if i !=0:
+#             s += " and " 
+#         s += "{} any {}".format(serch_type,w)
+#     s_quote = urllib.parse.quote(s)
+#     url = "{}?type=reference&query={}".format(root_url,s_quote)
+#     return url
 
-def make_response(url,name):
-    reps = []
-    req = requests.get(url)
-    dict = xmltodict.parse(req.text)
-    if 'result' in dict['result_set']:
-        dict = dict['result_set']['result']
-        if isinstance(dict, list):
-            dict = random.choice(dict)
-        question = dict['reference']['question'].replace("\n","")
-        link = dict['reference']['url']
+# def make_response(url,name):
+#     reps = []
+#     req = requests.get(url)
+#     dict = xmltodict.parse(req.text)
+#     if 'result' in dict['result_set']:
+#         dict = dict['result_set']['result']
+#         if isinstance(dict, list):
+#             dict = random.choice(dict)
+#         question = dict['reference']['question'].replace("\n","")
+#         link = dict['reference']['url']
 
-        reps += ['{} のあたりにいるんだね！'.format(name)]
-        reps += ['そこについては、「{}」という質問を図書館に投げかけた人がいるみたいだよ。'.format(question)]
-        reps += ['もっと詳しく知りたいならリンク先をみてみてね！']
+#         reps += ['{} のあたりにいるんだね！'.format(name)]
+#         reps += ['そこについては、「{}」という質問を図書館に投げかけた人がいるみたいだよ。'.format(question)]
+#         reps += ['もっと詳しく知りたいならリンク先をみてみてね！']
 
-    else:
-        link = False
-        reps += ['ちょっとわからないや。どこか地名を教えて。']
+#     else:
+#         link = False
+#         reps += ['ちょっとわからないや。どこか地名を教えて。']
 
-    return reps,link
+#     return reps,link
 
-def send_to_slack(send_text,channel_name= "#botデバッグ用"):
-  response = client.chat_postMessage(channel=channel_name, text=send_text,icon_emoji = ":rehatch_1:",username="れはっち" )
+
+# def send_to_slack(send_text,channel_name= "#botデバッグ用"):
+#   response = client.chat_postMessage(channel=channel_name, text=send_text,icon_emoji = ":rehatch_1:",username="れはっち" )
+
 
 def record_log_to_kintone( source, send_text, sender ):
   
@@ -147,39 +151,47 @@ def hello():
 def recieve_get():
   query = request.args.get('content')
   
-  url = make_url(query)
-  reps,link_url = make_response(url,query)
+  # url = make_url(query)
+  # reps,link_url = make_response(url,query)
   # for r in reps:
   #   print('> {}'.format(r))
-  if link_url:
-    send_to_slack(link_url)
-    reps += ['スラックに送ったよ！']
-    
+  # if link_url:
+  #   send_to_slack(link_url)
+  #   reps += ['スラックに送ったよ！']
 
-  return ''.join(reps)
+  reqs = util_refa._turn(query)
+    
+  message = []
+  for r in reqs:
+    sent = r["t"]
+    print('> {}'.format(sent))
+    message.append(sent)
+  
+    
+  return ''.join(message)
 
 #for Slack
-@app.route('/api/command/reference_talk/from_slack', methods=['POST'])
-def recieve_post_slack():
-  query = request.form['text']
-  send_user = request.form['user_name']
+# @app.route('/api/command/reference_talk/from_slack', methods=['POST'])
+# def recieve_post_slack():
+#   query = request.form['text']
+#   send_user = request.form['user_name']
 
-  print(request.form)
-  print('query: {}'.format(query))
+#   print(request.form)
+#   print('query: {}'.format(query))
 
-  url = make_url(query)
-  reps,link_url = make_response(url,query)
-  for r in reps:
-    print('> {}'.format(r))
+#   url = make_url(query)
+#   reps,link_url = make_response(url,query)
+#   for r in reps:
+#     print('> {}'.format(r))
   
   
-  if link_url:
-    send_to_slack('{}さんは'.format(send_user) + ''.join(reps))
-    send_to_slack(link_url)
-  else:
-    send_to_slack(''.join(reps))
+#   if link_url:
+#     send_to_slack('{}さんは'.format(send_user) + ''.join(reps))
+#     send_to_slack(link_url)
+#   else:
+#     send_to_slack(''.join(reps))
     
-  return ''
+#   return ''
 
 
 ######## LINE bot (START) ########
@@ -216,16 +228,23 @@ def callback():
     
     #reply LINE bot
     query = event.message.text
-    url = make_url(query)
-    reps,link_url = make_response(url,query)
-    for r in reps:
-      print('> {}'.format(r))
+    #url = make_url(query)
+    reqs = util_refa._turn(query)
+    #reqs,link_url = make_response(url,query)
+    
+    message = []
+    for r in reqs:
+      sent = r["t"]
+      print('> {}'.format(sent))
+      message.append(sent)
   
-    if link_url:
-      reply_message = ''.join(reps) + "\n" + link_url
-    else:
-      reply_message = ''.join(reps)
-      
+    # if link_url:
+    #   reply_message = ''.join(reps) + "\n" + link_url
+    # else:
+    #   reply_message = ''.join(reps)
+    
+    reply_message = ''.join(message)
+
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage( text=reply_message )

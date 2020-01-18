@@ -168,8 +168,9 @@ def recieve_get():
       print('> {}'.format(sent))
       message.append(sent)
   
-    
-  return ''.join(message)
+  recommend_link = message[-1] #追加参照で送る用
+
+  return ''.join(message[:-1])
 
 #for Slack
 # @app.route('/api/command/reference_talk/from_slack', methods=['POST'])

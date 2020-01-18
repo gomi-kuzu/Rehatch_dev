@@ -163,9 +163,10 @@ def recieve_get():
     
   message = []
   for r in reqs:
-    sent = r["t"]
-    print('> {}'.format(sent))
-    message.append(sent)
+    if "v" in r:
+      sent = r["v"]
+      print('> {}'.format(sent))
+      message.append(sent)
   
     
   return ''.join(message)
@@ -234,9 +235,10 @@ def callback():
     
     message = []
     for r in reqs:
-      sent = r["t"]
-      print('> {}'.format(sent))
-      message.append(sent)
+      if "t" in r:
+        sent = r["t"]
+        print('> {}'.format(sent))
+        message.append(sent)
   
     # if link_url:
     #   reply_message = ''.join(reps) + "\n" + link_url

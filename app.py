@@ -169,6 +169,21 @@ def recieve_get():
       message.append(sent)
   
   recommend_link = message[-1] #追加参照で送る用
+  
+  ####### push to LINE(START) #########
+  # https://developers.line.biz/en/reference/messaging-api/#send-push-message
+  # https://qiita.com/kotamatsukun/items/6f56d0d0a3225160b4d0
+  
+  push_message = "れはっちからのお知らせだよ。URLを送るよ\n {}".format(recommend_link)
+  
+  line_bot_api.push_message(
+    os.environ['LINE_PUSH_DESTINATION'],
+    TextSendMessage( text=push_message )
+  )
+  
+  ####### push to LINE(END) ###########
+  
+  record_log_to_kintone( "RoBoHon", query, "UNKNOWN" )     #event.source.userIdで無い理由は不明
 
   return ''.join(message[:-1])
 

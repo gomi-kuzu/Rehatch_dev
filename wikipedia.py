@@ -109,6 +109,7 @@ def make_response(keywords, results):
   # print(f'summary:\n{summary}\n===')
   
   # {{.*}} の除去
+  # print('remove {{}}')
   while re.search(r'{{(?!.*{{).*?}}', summary):
     summary = re.sub(r'{{(?!.*{{).*?}}', ' ', summary)
   # summary = re.sub(r'{{Maplink(.|\s)*?}}', ' ', summary)
@@ -116,28 +117,25 @@ def make_response(keywords, results):
   summary = re.sub(r'{{(.|\s)*?}}', ' ', summary)
   
   # [[.*:.*]] の除去
-  summary = re.sub(r'\[\[.*:(.|\s)*?\]\]', ' ', summary)
-  # summary = re.sub(r'\[\[画像(.|\s)*?\]\]', ' ', summary)
-  # print(f'summary:\n{summary}\n===')
-  
-  # {{.*}} の除去
-  while re.search(r'{{(?!.*{{).*?}}', summary):
-    summary = re.sub(r'{{(?!.*{{).*?}}', ' ', summary)
-  # summary = re.sub(r'{{Maplink(.|\s)*?}}', ' ', summary)
-  # summary = re.sub(r'{{ウィキ(.|\s)*?}}', ' ', summary)
-  summary = re.sub(r'{{(.|\s)*?}}', ' ', summary)
-  
-  # [[.*:.*]] の除去
+  # print('remove [[:]]')
   summary = re.sub(r'\[\[.*:(.|\s)*?\]\]', ' ', summary)
   # summary = re.sub(r'\[\[画像(.|\s)*?\]\]', ' ', summary)
   # print(f'summary:\n{summary}\n===')
   
   # <ref>.*</ref> の除去
-  summary = re.sub(r'<ref(.|\s)*?</ref>', ' ', summary)
+  # print('remove <ref>')
+  # summary = re.sub('<ref(.|\s)*?</ref>', ' ', summary)
+  summary = re.sub(r'<ref>(.|\s)*?</ref>', ' ', summary)
+  # summary = re.sub(r'<ref (.|\s)*?</ref>', ' ', summary)
+  # print(f'summary:\n{summary}\n===')
+  
   # <!--.*--> の除去
-  summary = re.sub(r'<!--(.|\s)*?-->', ' ', summary)
+  # print('remove <!-- -->')
+  summary = re.sub(r'<!--.*?-->', ' ', summary)
+  # print(f'summary:\n{summary}\n===')
   
   # ''' の除去
+  # print('remove \'\'\'')
   summary = summary.replace('\'\'\'', '')
   
   summary = summary.strip().split('\n\n',1)[0]

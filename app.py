@@ -159,22 +159,24 @@ def recieve_get():
   #   send_to_slack(link_url)
   #   reps += ['スラックに送ったよ！']
 
-  reqs = util_refa._turn(query)
+  reqs = util_refa.get_response(query)
     
   message = []
+  links = []
   for r in reqs:
     if "v" in r:
       sent = r["v"]
       print('> {}'.format(sent))
       message.append(sent)
-  
-  recommend_link = message[-1] #追加参照で送る用
-  
+    elif "l" in r:
+      link = r["l"]
+      links.append(sent)
+    
   ####### push to LINE(START) #########
   # https://developers.line.biz/en/reference/messaging-api/#send-push-message
   # https://qiita.com/kotamatsukun/items/6f56d0d0a3225160b4d0
   
-  push_message = "れはっちからのお知らせだよ。URLを送るよ\n {}".format(recommend_link)
+  push_message = "{}\n{}".format(message[-1],links[-1])
   
   line_bot_api.push_message(
     os.environ['LINE_PUSH_DESTINATION'],
@@ -246,7 +248,7 @@ def callback():
     #reply LINE bot
     query = event.message.text
     #url = make_url(query)
-    reqs = util_refa._turn(query)
+    reqs = util_refa.get_response(query)
     #reqs,link_url = make_response(url,query)
     
     message = []
@@ -255,6 +257,11 @@ def callback():
         sent = r["t"]
         print('> {}'.format(sent))
         message.append(sent)
+      elif "l" in r:
+        sent = r["l"]
+        print('> {}'.format(sent))
+        message.append(sent)
+
   
     # if link_url:
     #   reply_message = ''.join(reps) + "\n" + link_url

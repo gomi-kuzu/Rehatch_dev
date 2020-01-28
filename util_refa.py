@@ -82,17 +82,30 @@ def dev_exec(mode='t', debug=False):
 
 def test(text):
   res = get_response(text)
+  # mess = []
+  # for r in res:
+  #   if "v" in r:
+  #     mess.append(r["v"])
+  #   if "l" in r:
+  #     mess.append("\n" + r["l"] + "\n")
+  # return ''.join(mess)
+
+  message = []
+  links = []
   for r in res:
     if "v" in r:
-      print(r["v"])
-    if "l" in r:
-      print("!!!",r["l"])
-  return
+      sent = r["v"]
+      print('> {}'.format(sent))
+      message.append(sent)
+    elif "l" in r:
+      link = r["l"]
+      links.append(link)
+  return "{}\n{}".format(message[-1],links[-1])
 
 if __name__ == '__main__':
   # mode = 't' if len(sys.argv)<2 else sys.argv[1]
   # dev_exec(mode)
-  test(sys.argv[1])
+  print(test(sys.argv[1]))
   
   
   

@@ -170,7 +170,7 @@ def recieve_get():
       message.append(sent)
     elif "l" in r:
       link = r["l"]
-      links.append(sent)
+      links.append(link)
     
   ####### push to LINE(START) #########
   # https://developers.line.biz/en/reference/messaging-api/#send-push-message
@@ -258,7 +258,7 @@ def callback():
         print('> {}'.format(sent))
         message.append(sent)
       elif "l" in r:
-        sent = r["l"]
+        sent = "\n" + r["l"] + "\n"
         print('> {}'.format(sent))
         message.append(sent)
 

@@ -10,7 +10,7 @@ import urllib.parse
 import requests
 
 from text_utils import get_keywords
-from message import make_wait_res, make_noresult_res
+from message import make_wait_res, make_noresult_res, make_response
 import refkyo
 import wikipedia
 
@@ -38,12 +38,13 @@ def get_response(text, debug=False):
     print('keywords: {}'.format(keywords))
     print()
   
-  res = []
+  # 各種データベースからデータ抽出
+  dataset = {}
+  dataset['wiki'] = wikipedia.access_db_to_data(keywords)
+  dataset['ref'] = refkyo.access_db_to_data(keywords)
   
-  # wikipediaからレスポンス生成
-  res +=  wikipedia.access_db_to_response(keywords, debug=debug)
-  # レファ協からレスポンス生成
-  res += refkyo.access_db_to_response(keywords, debug=debug)
+  # データもとにレスポンス作成
+  res = make_response(keywords, dataset)
   
   return res
 

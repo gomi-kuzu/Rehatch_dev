@@ -48,8 +48,8 @@ def get_keywords(text):
     _t = text
     _t = _t.split('という',1)[0]
     _t = _t.split('とゆう',1)[0]
-    _t = _t.split('てゆう',1)[0]
     _t = _t.split('ていう',1)[0]
+    _t = _t.split('てゆう',1)[0]
     _t = _t.strip('っ')
     _t = _t.strip()
     if len(_t)>1 and len(_t)<len(text):

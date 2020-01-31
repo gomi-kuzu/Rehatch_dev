@@ -9,9 +9,6 @@ import xmltodict
 import urllib.parse
 import requests
 
-from text_utils import shorten_text, make_voice
-import message
-
 def make_url(keywords, serch_type="question"):
   '''
   wikipediaに投げるクエリ作成
@@ -51,29 +48,14 @@ def db_access(query):
   
   return ret
 
-def make_response(keywords, results):
+def parse_result(keywords, result):
   '''
-  キーワードと検索結果から、れはっちの返答を作る
-  {'t':TEXT_MESSAGE, 'v':VOICE_MESSAGE, 'l':URL}
+  クエリレスポンスをパースしてほしいデータを抽出
+  input:
+    - keywords: キーワードのリスト
+    - result: 検索結果
+  output: 辞書データ
   '''
-  
-  # 検索結果がないとき
-  if len(results)==0:
-    ret = [random.choice([
-      {
-        't': 'まだWikipediaには、きみが気になってることは書かれていないみたい。もしきみが何か知っているなら、記事を書いてみない？',
-        'v': 'まだWikipediaには、きみが気になってることは書かれていないみたい。もしきみが何か知っているなら、記事を書いてみない？',
-        },
-      {
-        't': 'わあー！きみが気になっていることは、まだWikipediaに書かれていないみたい。これはきみが記事を書くチャンスだよ！',
-        'v': 'わあー！きみが気になっていることは、まだWikipediaに書かれていないみたい。これはきみが記事を書くチャンスだよ！',
-        },
-      ])]
-    return ret
-  
-  # 検索結果を一つ選択
-  result = random.choice(results)
-  # print('result: {}'.format(json.dumps(result, indent=2, ensure_ascii=False)))
   
   # ページタイトル
   title = result['@title']
@@ -100,7 +82,7 @@ def make_response(keywords, results):
   # print()
   
   # カテゴリー
-  categories = [x.split(']]',1)[0].strip() for x in text.split('[[Category:')[1:]]
+  categories = [x.split(']]',1)[0].split('|',1)[0].strip() for x in text.split('[[Category:')[1:]]
   # print(f'categories: {categories}')
   # print()
   
@@ -155,7 +137,6 @@ def make_response(keywords, results):
     _ms = re.search(r'\[\[(.|\s)*?\]\]', summary)
   
   summary = re.sub(r'\s+', ' ', summary).strip()
-  summary_v = make_voice(summary)
   # print(f'summary:\n{summary}\n===')
   
   # 記事のURL
@@ -166,72 +147,24 @@ def make_response(keywords, results):
   if '{{出典の明記|' in text:
     wiki_not_enough = True
   
-  ret = []
-  
-  # ヒットキーワードについて
-  if hit is not None:
-    ret += [random.choice([
-      {
-        't': f'{hit} だね!',
-        'v': f'{hit} だね!',
-        },
-      {
-        't': f'{hit} が気になるのかな。',
-        'v': f'{hit} が気になるのかな。',
-        },
-      ])]
-  
-  # Wikipedia概要について
-  if hit is not None:
-    ret += [random.choice([
-      {
-        't': f'Wikipediaによると、{hit} といえば、\n{summary}\nなんだって。',
-        'v': f'Wikipediaによると、{hit} といえば、\n{summary_v}\nなんだって。',
-        },
-      {
-        't': f'{hit} については、Wikipediaには、\n{summary}\nとあるね。',
-        'v': f'{hit} については、Wikipediaには、\n{summary_v}\nとあるね。',
-        },
-      ])]
-  else:
-    ret += [random.choice([
-      {
-        't': f'そういえば、Wikipediaの記事に、\n{summary}\nというのがあるよ。',
-        'v': f'そういえば、Wikipediaの記事に、\n{summary_v}\nというのがあるよ。',
-        },
-      {
-        't': f'ねえねえ。Wikipediaに、\n{summary}\nという記事があるよ。',
-        'v': f'ねえねえ。Wikipediaに、\n{summary_v}\nという記事があるよ。',
-        },
-      ])]
-  ret += [{'l': wurl}]
-  
-  # 記事が不十分なとき
-  if wiki_not_enough:
-    ret += [random.choice([
-      {
-        't': 'ふむふむ。この記事はまだ十分でないみたい。もしきみが何か知ってることがあれば書き込んでみようよ。',
-        'v': 'ふむふむ。この記事はまだ十分でないみたい。もしきみが何か知ってることがあれば書き込んでみようよ。',
-        },
-      {
-        't': 'ねえねえ。まだこの記事は十分じゃないみたい。きみの知っていることを書き込むチャンスかもしれないよ。',
-        'v': 'ねえねえ。まだこの記事は十分じゃないみたい。きみの知っていることを書き込むチャンスかもしれないよ。',
-        },
-      ])]
-  
-  return ret
+  wiki_data = {
+    'hit': hit,
+    'title': title,
+    'text': text,
+    'categories': categories,
+    'summary': summary,
+    'url': wurl,
+    'not_enough': wiki_not_enough,
+  }
+  return wiki_data
 
-def access_db_to_response(keywords, debug=False):
+def access_db_to_data(keywords, debug=False):
   '''
   入力から返答を作成
   input:
     - keywords: キーワードリスト (unicode)
     - debug: 中間結果を表示するかどうか (bool)
-  output: 会話文のリスト [文, 文, ...]
-    - 文: dict. key='t' or 'v'. val=返答文.
-      - 't': text. text modeのみの返答
-      - 'v': voice. voice modeのみの返答
-      - 'l': URL
+  output: wikipediaページデータ (dict) のリスト
   '''
   
   # キーワード
@@ -252,18 +185,17 @@ def access_db_to_response(keywords, debug=False):
     # print(type(results))
     print()
   
-  # テキストチャット、ボイスチャット 共通の返答を作成
-  res = make_response(keywords, results)
+  # wikipediaページデータ抽出結果
+  wiki_data = [parse_result(keywords, x) for x in results]
   if debug:
-    print('response:')
-    for r in res:
-      print(r)
-    print()
+    print('wiki_data:')
+    for _d in wiki_data:
+      print(json.dumps(_d, indent=2, ensure_ascii=False))
   
-  return res
+  return wiki_data
 
 if __name__ == '__main__':
   # print(sys.argv)
   keywords = sys.argv[1:]
-  access_db_to_response(keywords, debug=True)
+  access_db_to_data(keywords, debug=True)
   

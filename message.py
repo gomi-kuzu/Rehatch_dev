@@ -5,7 +5,7 @@ import json
 import os
 import random
 
-import text_utils
+from text_utils import shorten_text, make_voice
 
 def make_wait_res():
   '''
@@ -14,24 +14,33 @@ def make_wait_res():
   '''
   cnads = [
     {
-      't':'やあ! レファレンス共同データベース のマスコット。れはっち だよ!',
-      'v':'やあ! レファレンス共同データベース のマスコット。れはっち だよ!'
+      't':'やあ！レファレンス共同データベース のマスコット。れはっち だよ！',
+      'v':'やあ！レファレンス共同データベース のマスコット。 れはっち だよ！'
       },
     {
       't':'全国の図書館に寄せられた疑問を紹介するよ。',
       'v':'全国の図書館に寄せられた疑問を紹介するよ。'
       },
     {
-      't':'気になっている場所はあるかな?',
-      'v':'気になっている場所はあるかな?'
+      't':'気になっている場所はあるかな？',
+      'v':'気になっている場所はあるかな？'
       },
     {
-      't':'今はどこにいるのかな?',
-      'v':'今はどこにいるのかな?'
+      't':'今はどこにいるのかな？',
+      'v':'今はどこにいるのかな？'
       },
   ]
   ret = random.choice(cnads)
   return ret
+
+# def make_response(keywords, results):
+#   '''
+#   キーワードと検索結果から、れはっちの返答を作る
+#   {'t':TEXT_MESSAGE, 'v':VOICE_MESSAGE, 'l':URL}
+#   '''
+#   
+#   
+#   return ret
 
 def make_noresult_res():
   '''
@@ -58,3 +67,221 @@ def make_noresult_res():
   ]
   ret = random.choice(cnads)
   return ret
+
+def make_response(keywords, dataset):
+  '''
+  入力から返答を作成
+  input:
+    - keywords: キーワードリスト (unicode)
+    - dataset: 各種データベースからの抽出データ. {'ref':レファレンスデータ, 'wiki':wikipediaデータ}
+  output: 会話文のリスト [文, 文, ...]
+    - 文: dict. key='t' or 'v'. val=返答文.
+      - 't': text. text modeのみの返答
+      - 'v': voice. voice modeのみの返答
+      - 'l': URL
+  '''
+  
+  wikidata = dataset['wiki']
+  refdata = dataset['ref']
+  # print(f'keywords: {keywords}')
+  # print(f'wikidata: {len(wikidata)}')
+  # print(f'refdata: {len(refdata)}')
+  
+  no_wiki = len(wikidata)==0 # wikipediaデータないかあるか
+  no_ref = len(refdata)==0 # レファレンスデータないとき
+  
+  if no_wiki and no_ref:
+    # なんにも結果のないとき
+    return [make_noresult_res()]
+  elif no_wiki and not no_ref:
+    ret = []
+    # wikipediaデータのないとき
+    ret += [random.choice([
+      {
+        't': 'まだWikipediaには、きみが気になってることは書かれていないみたい。もしきみが何か知っているなら、記事を書いてみない？',
+        'v': 'まだWikipediaには、きみが気になってることは書かれていないみたい。もしきみが何か知っているなら、記事を書いてみない？',
+        },
+      {
+        't': 'わあー！きみが気になっていることは、まだWikipediaに書かれていないみたい。これはきみが記事を書くチャンスだよ！',
+        'v': 'わあー！きみが気になっていることは、まだWikipediaに書かれていないみたい。これはきみが記事を書くチャンスだよ！',
+        },
+      ])]
+    
+    return ret
+  else:
+    # wikipediaデータあるとき
+    wikihits = list(set([x['hit'] for x in wikidata])) # wikipediaでヒットしたクエリ
+    refhits = list(set([x['hit'] for x in refdata])) # レファ協でヒットしたクエリ
+    hits = list(set([x for x in wikihits+refhits if x in wikihits and x in refhits])) # マージ
+    # print(f'wikihits: {wikihits}')
+    # print(f'refhits: {refhits}')
+    # print(f'hits: {hits}')
+    
+    hit = random.choice(hits) # ランダムにキーワード決定
+    # print(f'hit: {hit}')
+    
+    # wikidataフィルタリング
+    _data = []
+    for _d in wikidata:
+      if _d['hit']==hit:
+        _data += [_d]
+    # print(f'wikidata: {len(_data)}')
+    # 1こランダムに選択
+    wikidat = random.choice(_data)
+    
+    # レファ協フィルタリング
+    _data = []
+    for _d in refdata:
+      if _d['hit']==hit:
+        _data += [_d]
+      elif hit in _d['question']: # レファ協は質問からも探す
+        _data += [_d]
+    # print(f'refdata: {len(_data)}')
+    # 1こランダムに選択
+    refdat = None if len(_data)==0 else random.choice(_data)
+    
+    # 発話生成
+    ret = []
+    
+    # wikipedia
+    summary = wikidat['summary']
+    wurl = wikidat['url']
+    wiki_not_enough = wikidat['not_enough']
+    summary_v = make_voice(summary)
+    
+    # wikipedia: ヒットキーワードについて
+    if hit is not None:
+      ret += [random.choice([
+        {
+          't': f'{hit} だね！',
+          'v': f'{hit} だね！',
+          },
+        {
+          't': f'{hit} が気になるのかな。',
+          'v': f'{hit} が気になるのかな。',
+          },
+        ])]
+    # wikipedia: 概要について
+    if hit is not None:
+      ret += [random.choice([
+        {
+          't': f'Wikipediaによると、{hit} といえば、\n{summary}\nなんだって。',
+          'v': f'Wikipediaによると、{hit} といえば、\n{summary_v}\nなんだって。',
+          },
+        {
+          't': f'{hit} については、Wikipediaには、\n{summary}\nとあるね。',
+          'v': f'{hit} については、Wikipediaには、\n{summary_v}\nとあるね。',
+          },
+        ])]
+    else:
+      ret += [random.choice([
+        {
+          't': f'そういえば、Wikipediaの記事に、\n{summary}\nというのがあるよ。',
+          'v': f'そういえば、Wikipediaの記事に、\n{summary_v}\nというのがあるよ。',
+          },
+        {
+          't': f'ねえねえ。Wikipediaに、\n{summary}\nという記事があるよ。',
+          'v': f'ねえねえ。Wikipediaに、\n{summary_v}\nという記事があるよ。',
+          },
+        ])]
+    # wikipedia: ページのURL
+    ret += [{'l': wurl}]
+    
+    # wikipedia: 記事が不十分なとき
+    if wiki_not_enough:
+      ret += [random.choice([
+        {
+          't': 'おや？ この記事はまだ十分でないみたい。もしきみが何か知ってることがあれば書き込んでみようよ。',
+          'v': 'おや？ この記事はまだ十分でないみたい。もしきみが何か知ってることがあれば書き込んでみようよ。',
+          },
+        {
+          't': 'ねえねえ。まだこの記事は十分じゃないみたい。きみの知っていることを書き込むチャンスかもしれないよ。',
+          'v': 'ねえねえ。まだこの記事は十分じゃないみたい。きみの知っていることを書き込むチャンスかもしれないよ。',
+          },
+        ])]
+    
+    # レファレンスデータ
+    if refdat:
+      question = refdat['question']
+      answer = refdat['answer']
+      lib = refdat['lib']
+      qurl = refdat['url']
+      question_s = shorten_text(question)
+      question_v = make_voice(question)
+      answer_s = shorten_text(answer)
+      answer_v = make_voice(answer)
+      lib_v = make_voice(lib)
+      
+      # レファレンス: 質問について
+      if refdat['hit']==hit:
+        ret += [random.choice([
+          {
+            't': 'それとね。',
+            'v': 'それとね。',
+            },
+          {
+            't': 'あとねえ。',
+            'v': 'あとねえ。',
+            },
+          ])]
+        ret += [random.choice([
+          {
+            't': f'{hit} といえば、\n{question_s}\nという質問を図書館にした人がいるみたいだよ。',
+            'v': f'{hit} といえば、 {question_v} という質問を図書館にした人がいるみたいだよ。',
+            },
+          {
+            't': f'{hit} については、\n{question_s}\nということが気になっている人がいるみたいだよ。',
+            'v': f'{hit} といえば、 {question_v} ということが気になっている人がいるみたいだよ。',
+            },
+          ])]
+      else:
+        ret += [random.choice([
+          {
+            't': f'ふむふむ。そういえば、\n{question_s}\nという質問をした人がいるみたいだよ。',
+            'v': f'ふむふむ。そういえば、 {question_v} という質問をした人がいるみたいだよ。',
+            },
+          {
+            't': f'ふむふむ。そういえば、\n{question_s}\nということが気になっている人がいるみたいだよ。',
+            'v': f'ふむふむ。そういえば、 {question_v} ということが気になっている人がいるみたいだよ。',
+            },
+          ])]
+      # レファレンス: 図書館、回答について
+      ret += [random.choice([
+        {
+          't': f'これには、{lib} の職員さんが答えてくれたんだ。\nそれによると、\n{answer_s}\nなんだって。',
+          'v': f'これには、{lib_v} の職員さんが答えてくれたんだ。',
+          },
+        {
+          't': f'この質問には、{lib} の職員さんが答えてくれたんだ。\nそれによると、\n{answer_s}\nなんだって。',
+          'v': f'この質問には、{lib_v} の職員さんが答えてくれたんだ。',
+          },
+        ])]
+      # レファレンス: 感想
+      ret += [random.choice([
+        {
+          't': 'おもしろいね！',
+          'v': 'おもしろいね！',
+          },
+        {
+          't': '興味深いね！',
+          'v': '興味深いね！',
+          },
+        {
+          't': 'おどろきだね！',
+          'v': 'おどろきだね！',
+          },
+        ])]
+      # レファレンス: URL
+      ret += [{
+        't': 'もっと詳しく知りたいならリンク先をみてみてね！',
+        'v': '回答についてはチャットに送ったリンク先をみてみてね！',
+        }]
+      ret += [{
+        't': '質問についてのリンクだよ！',
+        'v': '質問についてのリンクだよ！',
+        }]
+      ret += [{'l': qurl}]
+      
+    return ret
+  
+  return

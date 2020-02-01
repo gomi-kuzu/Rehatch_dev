@@ -161,7 +161,7 @@ def recieve_get():
   #   reps += ['スラックに送ったよ！']
 
   # reqs = util_refa.get_response(query)
-  reqs = message_manager.get_respnse(query)
+  reqs = message_manager.get_response(query)
     
   message = []
   links = []
@@ -251,7 +251,7 @@ def callback():
     query = event.message.text
     #url = make_url(query)
     # reqs = util_refa.get_response(query)
-    reqs = message_manager.get_respnse(query)
+    reqs = message_manager.get_response(query)
     #reqs,link_url = make_response(url,query)
     
     message = []

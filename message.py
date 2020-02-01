@@ -5,7 +5,9 @@ import json
 import os
 import random
 
-from text_utils import shorten_text, make_voice
+from text_utils import get_keywords, shorten_text, make_voice
+import refkyo
+import wikipedia
 
 def make_wait_res():
   '''
@@ -78,7 +80,8 @@ def make_response(keywords, dataset):
     - 文: dict. key='t' or 'v'. val=返答文.
       - 't': text. text modeのみの返答
       - 'v': voice. voice modeのみの返答
-      - 'l': URL
+      - 'tl': URLがらみのtext返答
+      - 'vl': URLがらみのvoice返答
   '''
   
   wikidata = dataset['wiki']
@@ -144,9 +147,11 @@ def make_response(keywords, dataset):
     ret = []
     
     # wikipedia
+    title = wikidat['title']
     summary = wikidat['summary']
     wurl = wikidat['url']
     wiki_not_enough = wikidat['not_enough']
+    title_v = make_voice(title)
     summary_v = make_voice(summary)
     
     # wikipedia: ヒットキーワードについて
@@ -173,19 +178,27 @@ def make_response(keywords, dataset):
           'v': f'{hit} については、Wikipediaには、\n{summary_v}\nとあるね。',
           },
         ])]
+      # wikipedia: ページのURL
+      ret += [{
+        'tl': wurl,
+        'vl': f'{hit} に関するWikipedia記事のリンクだよ！\n{wurl}',
+        }]
     else:
       ret += [random.choice([
         {
-          't': f'そういえば、Wikipediaの記事に、\n{summary}\nというのがあるよ。',
-          'v': f'そういえば、Wikipediaの記事に、\n{summary_v}\nというのがあるよ。',
+          't': f'そういえば、Wikipediaの記事に {title} というのがあって、\n{summary}\nなんだって。',
+          'v': f'そういえば、Wikipediaの記事に {title_v} というのがあって、\n{summary_v}\nなんだって。',
           },
         {
-          't': f'ねえねえ。Wikipediaに、\n{summary}\nという記事があるよ。',
-          'v': f'ねえねえ。Wikipediaに、\n{summary_v}\nという記事があるよ。',
+          't': f'ねえねえ。Wikipediaに {title} についての記事があって、\n{summary}\nと書かれているね。',
+          'v': f'ねえねえ。Wikipediaに {title_v} についての記事があって、\n{summary_v}\nと書かれているね。',
           },
         ])]
-    # wikipedia: ページのURL
-    ret += [{'l': wurl}]
+      # wikipedia: ページのURL
+      ret += [{
+        'tl': wurl,
+        'vl': f'{title} についてのWikipedia記事のリンクだよ！\n{wurl}',
+        }]
     
     # wikipedia: 記事が不十分なとき
     if wiki_not_enough:
@@ -273,15 +286,61 @@ def make_response(keywords, dataset):
         ])]
       # レファレンス: URL
       ret += [{
-        't': 'もっと詳しく知りたいならリンク先をみてみてね！',
-        'v': '回答についてはチャットに送ったリンク先をみてみてね！',
+        't': 'もっと詳しく知りたいならレファレンス協同データベースをみてみてね！',
+        'v': '回答についてはレファ協データベースをみてみてね！リンクをチャットに送ったよ！',
         }]
       ret += [{
-        't': '質問についてのリンクだよ！',
-        'v': '質問についてのリンクだよ！',
+        'tl': f'質問についてのリンクだよ！\n{qurl}',
+        'vl': f'質問についてのリンクだよ！\n{qurl}',
         }]
-      ret += [{'l': qurl}]
       
     return ret
   
   return
+
+def get_response(text, debug=False):
+  '''
+  入力から返答を作成
+  input:
+    - text: ユーザ入力文 (unicode)
+    - debug: 中間結果を表示するかどうか (bool)
+  output: 会話文のリスト [文, 文, ...]
+    - 文: dict. key='t' or 'v'. val=返答文.
+      - 't': text. text modeのみの返答
+      - 'v': voice. voice modeのみの返答
+      - 'tl': URLがらみのtext返答
+      - 'vl': URLがらみのvoice返答
+  '''
+  
+  # 入力文
+  if debug:
+    print('text: {}'.format(text))
+    print()
+  
+  # キーワードを抽出
+  keywords = get_keywords(text)
+  if debug:
+    print('keywords: {}'.format(keywords))
+    print()
+  
+  # 各種データベースからデータ抽出
+  dataset = {}
+  dataset['wiki'] = wikipedia.access_db_to_data(keywords)
+  dataset['ref'] = refkyo.access_db_to_data(keywords)
+  
+  # データもとにレスポンス作成
+  res = make_response(keywords, dataset)
+  
+  return res
+
+def test(text):
+  res = get_response(text)
+  for r in res:
+    print(r)
+  return
+
+if __name__ == '__main__':
+  # mode = 't' if len(sys.argv)<2 else sys.argv[1]
+  # dev_exec(mode)
+  test(sys.argv[1])
+

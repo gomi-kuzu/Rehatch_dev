@@ -8,7 +8,8 @@ import urllib.parse
 import requests
 import json
 import urllib.request
-import util_refa
+# import util_refa レファ協だけでなくなったので、機能をmessage.pyに移動.
+import message as message_manager
 
 
 app = Flask(__name__)
@@ -159,7 +160,8 @@ def recieve_get():
   #   send_to_slack(link_url)
   #   reps += ['スラックに送ったよ！']
 
-  reqs = util_refa.get_response(query)
+  # reqs = util_refa.get_response(query)
+  reqs = message_manager.get_respnse(query)
     
   message = []
   links = []
@@ -168,8 +170,8 @@ def recieve_get():
       sent = r["v"]
       print('> {}'.format(sent))
       message.append(sent)
-    elif "l" in r:
-      link = r["l"]
+    elif "vl" in r:
+      link = r["vl"]
       links.append(link)
     
   ####### push to LINE(START) #########
@@ -248,7 +250,8 @@ def callback():
     #reply LINE bot
     query = event.message.text
     #url = make_url(query)
-    reqs = util_refa.get_response(query)
+    # reqs = util_refa.get_response(query)
+    reqs = message_manager.get_respnse(query)
     #reqs,link_url = make_response(url,query)
     
     message = []
@@ -257,8 +260,8 @@ def callback():
         sent = r["t"]
         print('> {}'.format(sent))
         message.append(sent)
-      elif "l" in r:
-        sent = "\n" + r["l"] + "\n"
+      elif "tl" in r:
+        sent = r["tl"]
         print('> {}'.format(sent))
         message.append(sent)
 
@@ -268,7 +271,7 @@ def callback():
     # else:
     #   reply_message = ''.join(reps)
     
-    reply_message = ''.join(message)
+    reply_message = '\n'.join(message)
 
     line_bot_api.reply_message(
         event.reply_token,

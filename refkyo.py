@@ -48,8 +48,9 @@ def parse_result(keywords, result):
   # ヒットしたキーワード
   hit = None
   if 'keyword' in result['reference']:
+    _kws = [] if result['reference']['keyword'] is None else result['reference']['keyword']
     hits = [x for x in keywords
-            if len([y for y in result['reference']['keyword'] if x in y])>0]
+            if len([y for y in _kws if x in y])>0]
     hit = None if len(hits)==0 else random.choice(hits)
   # 質問
   question = re.sub(r"\s", " ", result['reference']['question']).strip()

@@ -90,6 +90,10 @@ def parse_result(keywords, result):
   summary = text
   # print(f'summary:\n{summary}\n===')
   
+  # とりあえず一回短めに本文をとる
+  summary = '\n\n'.join(summary.strip().split('\n\n',5)[:-1])
+  # print(f'summary:\n{summary}\n===')
+  
   # {{.*}} の除去
   # print('remove {{}}')
   while re.search(r'{{(?!.*{{).*?}}', summary):
@@ -97,6 +101,21 @@ def parse_result(keywords, result):
   # summary = re.sub(r'{{Maplink(.|\s)*?}}', ' ', summary)
   # summary = re.sub(r'{{ウィキ(.|\s)*?}}', ' ', summary)
   summary = re.sub(r'{{(.|\s)*?}}', ' ', summary)
+  
+  # [[.*]] の処理
+  # _ms = re.search(r'\[\[(.|\s)*?\]\]', summary)
+  _ms = re.search(r'\[\[(?!.*(\[\[|:))(.|\s)*?\]\]', summary)
+  while _ms:
+    _span = _ms.span()
+    _m = summary[_span[0]:_span[1]]
+    # print(_m)
+    _r = _m.split('[[',1)[-1].split(']]',1)[0].split('|',1)[-1]
+    # print(_r)
+    summary = summary.replace(_m, _r)
+    # print(summary)
+    # _ms = re.search(r'\[\[(.|\s)*?\]\]', summary)
+    _ms = re.search(r'\[\[(?!.*(\[\[|:))(.|\s)*?\]\]', summary)
+  # print(f'summary:\n{summary}\n===')
   
   # [[.*:.*]] の除去
   # print('remove [[:]]')
@@ -123,18 +142,6 @@ def parse_result(keywords, result):
   summary = summary.strip().split('\n\n',1)[0]
   # summary = summary.replace('\n', ' ')
   # print(f'summary:\n{summary}\n===')
-  
-  # [[.*]] の処理
-  _ms = re.search(r'\[\[(.|\s)*?\]\]', summary)
-  while _ms:
-    _span = _ms.span()
-    _m = summary[_span[0]:_span[1]]
-    # print(_m)
-    _r = _m.split('[[',1)[-1].split(']]',1)[0].split('|',1)[-1]
-    # print(_r)
-    summary = summary.replace(_m, _r)
-    # print(summary)
-    _ms = re.search(r'\[\[(.|\s)*?\]\]', summary)
   
   summary = re.sub(r'\s+', ' ', summary).strip()
   # print(f'summary:\n{summary}\n===')

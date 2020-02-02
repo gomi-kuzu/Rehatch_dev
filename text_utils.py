@@ -9,6 +9,7 @@ import ftfy
 def get_char_type(c):
   '''
   文字タイプ判定
+  out: 'hira', 'kata', 'kanji', or 'other'
   '''
   if re.match('[\u3041-\u309F]', c):
     return 'hira' # ひらがな
@@ -51,6 +52,8 @@ def get_keywords(text):
     _t = _t.split('ていう',1)[0]
     _t = _t.split('てゆう',1)[0]
     _t = _t.strip('っ')
+    # 'について'をヒントにキーワード化
+    _t = _t.split('について',1)[0]
     _t = _t.strip()
     if len(_t)>1 and len(_t)<len(text):
       ret += [_t]
@@ -73,6 +76,13 @@ def get_keywords(text):
   
   # 重複削除
   ret = list(set(ret))
+  
+  # ひらがなのみのキーワードを削除
+  _ret = []
+  for x in ret:
+    if not all(get_char_type(c)=='hira' for c in x):
+      _ret += [x]
+  ret = _ret
   
   # キーワードが何も得られなかったとき、
   # しょうがないので元のベタテキストをキーボードにする

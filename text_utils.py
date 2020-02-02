@@ -139,7 +139,8 @@ def shorten_text(text, max_length=200):
     _buf = ''
     for c in ret:
       _buf += c
-      if c in ['。', '？', '.', '?']:
+      # if c in ['。', '？', '.', '?']:
+      if c in ['。', '？']:
         if len(_ret+_buf)>max_length:
           ret = _ret
           break

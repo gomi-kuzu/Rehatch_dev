@@ -403,7 +403,7 @@ def get_response(text, debug=False):
   return res
 
 def test(text):
-  res = get_response(text)
+  res = get_response(text, debug=True)
   for r in res:
     if 't' in r:
       print(r['t'])
